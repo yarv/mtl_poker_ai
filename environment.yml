@@ -1,0 +1,13 @@
+name: poker-ai
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - tk
+  - pillow
+  - numpy
+  - cairosvg
+  - pip:
+    - pytest 
