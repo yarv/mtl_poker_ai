@@ -16,6 +16,26 @@ class HandType(IntEnum):
     ROYAL_FLUSH = auto()
 
 class HandScore:
+    """Class to score a poker hand, given 5 or more cards
+    
+    Attributes:
+        cards (List[Card]): 7 cards, not necessarily sorted
+        value_counts (Counter): Count of each card value
+        sorted_values_and_counts (List[Tuple[int, int]]): Sorted list of (value, count) tuples
+            sorted by value, highest to lowest
+        suited_cards (Dict[Card.Suit, List[Card]]): Cards grouped by suit
+        hand_type (HandType): The type of hand found
+        score (int): The score of the hand
+        scoring_cards (List[Card]): The cards used to score the hand
+        
+        The "check_" methods are used (in descending order of hand type) to find
+        the highest scoring hand and return the cards used to score the hand.   
+        Each method returns a list of the "scoring" cards, which are the cards used
+        to score the hand, sorted by importance to the hand type. If the given
+        "check_" method doesn't find the hand type, it returns None, and the next
+        "check_" method is tried.
+    """
+    
     def __init__(self, cards: List[Card]):
         self.cards = cards  # 7 cards, not necessarily sorted
         self.value_counts = Counter([card.point_value for card in self.cards])
@@ -152,7 +172,7 @@ class HandScore:
                 return suit_cards
         return None
 
-    def check_straight(self, card_subset: List[Card] = None) -> List[Card] | None:
+    def check_straight(self, card_subset: List[Card] | None = None) -> List[Card] | None:
         """Check for a straight amongst 5 or more cards"""
         # Sort cards by value
         if card_subset is None:
