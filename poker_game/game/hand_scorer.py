@@ -4,16 +4,25 @@ from typing import List
 from poker_game.game.card import Card
 
 class HandType(IntEnum):
-    HIGH_CARD = auto()
-    PAIR = auto()
-    TWO_PAIR = auto()
-    THREE_OF_A_KIND = auto()
-    STRAIGHT = auto()
-    FLUSH = auto()
-    FULL_HOUSE = auto()
-    FOUR_OF_A_KIND = auto()
-    STRAIGHT_FLUSH = auto()
-    ROYAL_FLUSH = auto()
+    HIGH_CARD = ("High Card", auto())
+    PAIR = ("Pair", auto())
+    TWO_PAIR = ("Two Pair", auto())
+    THREE_OF_A_KIND = ("Three of a Kind", auto())
+    STRAIGHT = ("Straight", auto())
+    FLUSH = ("Flush", auto())
+    FULL_HOUSE = ("Full House", auto())
+    FOUR_OF_A_KIND = ("Four of a Kind", auto())
+    STRAIGHT_FLUSH = ("Straight Flush", auto())
+    ROYAL_FLUSH = ("Royal Flush", auto())
+    
+    def __new__(cls, string_name, value):
+        obj = int.__new__(cls, value)
+        obj._value_ = value
+        obj.string_name = string_name
+        return obj
+
+    def __str__(self):
+        return self.string_name
 
 class HandScore:
     """Class to score a poker hand, given 5 or more cards
@@ -26,7 +35,7 @@ class HandScore:
         suited_cards (Dict[Card.Suit, List[Card]]): Cards grouped by suit
         hand_type (HandType): The type of hand found
         score (int): The score of the hand
-        scoring_cards (List[Card]): The cards used to score the hand
+        scoring_cards (List[Card]): The cards used to score the hand, in order of importance
         
         The "check_" methods are used (in descending order of hand type) to find
         the highest scoring hand and return the cards used to score the hand.   
@@ -61,7 +70,6 @@ class HandScore:
     def score_hand(self) -> tuple[HandType, int, List[Card]]:
         """Score a poker hand using hole cards and community cards"""
         # Check from highest to lowest possible hands
-        hand_type = HandType.HIGH_CARD
         score = 0
         scoring_cards = []
         if royal_flush := self.check_royal_flush():
@@ -91,11 +99,13 @@ class HandScore:
         elif pair := self.check_pair():
             hand_type = HandType.PAIR
             scoring_cards = pair
-            
-        if hand_type == HandType.HIGH_CARD:
+        else:
+            hand_type = HandType.HIGH_CARD
             scoring_cards = sorted(self.cards, key=lambda x: x.point_value, reverse=True)[:5]
             
         weights = reversed([16 ** i for i in range(len(scoring_cards))])
+        
+        # Score is 
         score = sum(card.point_value * weight for card, weight in zip(scoring_cards, weights))
         score += hand_type.value * 16 ** len(scoring_cards)
         
@@ -108,16 +118,20 @@ class HandScore:
         return None
 
     def check_straight_flush(self) -> List[Card] | None:
-        # Check each suit for a straight, return highest scoring straight
-        # only possible for one suit so we can return first found
-        # as check_straight returns the highest scoring straight
+        """Check for a straight flush amongs the 7 cards
+        
+        uses check_straight to find the highest scoring straight flush,
+        checking through each suit to find the highest scoring straight flush
+        It can return the first found straight flush, as check_straight returns
+        the highest scoring straight, and only one suit can possibly have a flush
+        
+        """
         for suit_cards in self.suited_cards.values():
             if len(suit_cards) >= 5:
                 if straight := self.check_straight(suit_cards):
                     return straight
         return None
 
-# Add helper functions for other hand types... 
 
     def check_four_of_a_kind(self) -> List[Card] | None:
         """Check for four of a kind.
@@ -169,7 +183,7 @@ class HandScore:
 
         for suit_cards in self.suited_cards.values():
             if len(suit_cards) >= 5:
-                return suit_cards
+                return sorted(suit_cards, key=lambda x: x.point_value, reverse=True)[:5]
         return None
 
     def check_straight(self, card_subset: List[Card] | None = None) -> List[Card] | None:
@@ -208,7 +222,10 @@ class HandScore:
                     if card.point_value == value:
                         straight_cards.append(card)
                         break
-            return sorted(straight_cards, key=lambda x: x.point_value, reverse=True)
+            result = sorted(straight_cards, key=lambda x: x.point_value, reverse=True)
+            # place ace at the end of the list, since it's the lowest value in this straight
+            result.append(result.pop(0))
+            return result
         
         return None
 
@@ -273,6 +290,16 @@ if __name__ == "__main__":
         Card(Card.Rank.THREE, Card.Suit.HEARTS),
     ]
     
-    cards = player_cards + community_cards
-    hand = HandScore(cards)
-    print(hand)
+    computer_cards = [
+        Card(Card.Rank.SIX, Card.Suit.SPADES),
+        Card(Card.Rank.SEVEN, Card.Suit.HEARTS),
+    ]
+    player_total_cards = player_cards + community_cards
+    computer_total_cards = computer_cards + community_cards
+    player_hand = HandScore(player_total_cards)
+    computer_hand = HandScore(computer_total_cards)
+    
+    print("player_hand:", player_hand)
+    print("computer_hand:", computer_hand)
+    
+    print(f"winner: {player_hand if player_hand > computer_hand else computer_hand}")
